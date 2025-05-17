@@ -1,0 +1,559 @@
+---
+title: "An Analysis of S&P 500 and Commodity Price Correlations"
+author: "Reginal Supoint"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Introduction
+
+The purpose of this analysis is to explore the correlation between the S&P 500 index and various commodities such as oil, gold, silver, platinum and palladium. Understanding these correlations can provide insights into market dynamics and investment strategies. 
+
+This dataset includes daily closing prices for the S&P 500, NASDAQ, and several commodities. This analysis will include correlation analysis, time series forecasting and scenario analysis to understand potential future trends.
+
+
+```{r, include = FALSE, message = FALSE, warning= FALSE}
+# Load the packages
+library(tidyverse)
+library(corrplot)
+library(forecast)
+library(ggplot2)
+library(rugarch)
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+
+
+
+```
+
+
+```{R Load-Data, include = FALSE}
+data <- read.csv('financial_regression.csv')
+head(data)
+summary(data)
+sum(is.na(data))
+data_clean <- na.omit(data)
+```
+
+```{r}
+# Select relevant columns for correlation analysis
+cor_data <- data_clean %>% select(sp500.close, nasdaq.close, oil.close, gold.close, silver.close)
+
+# Calculate the correlation matrix
+cor_matrix <- cor(cor_data)
+
+# Print the correlation matrix
+print(cor_matrix)
+
+# Visualize the correlation matrix
+corrplot(cor_matrix, method = "color", type = "upper", tl.col = "black", tl.srt = 45)
+```
+``
+This correlation map provides a solid snapshot of how different assets are related to each other. We are particularly looking at how the commodities are related to the S&P 500.
+
+Correlations Scores range from -1 to 1, With 1 being the strongest correlation and -1 being the weakest correlation.
+
+## S&P 500 and NASDAQ 
+With a score of 0.99 we can see that the S&P 500 and NASDAQ are almost perfectly positively correlated. Therefore, when the S&P 500 moves in a certain direction the NASDAQ is likely to move in the same direction. 
+
+## Correlation Summary:
+High Correlation: S&P 500 and NASDAQ, NASDAQ and Gold, S&P 500 and GOLD 
+
+Moderate Correlation: S&P 500 and Oil, NASDAQ and Oil, Oil and Gold, Oil and Silver.
+
+Weak or No Correlation: S&P 500 and Silver, NASDAQ and Silver. 
+Due to the Market Dynamics Silver does not move in tandem with the Stock Market. Silver is more influenced by supply and demand dynamics specific to industrial and investment usages versus the stock market. Silver also tend to be highly volatile meaning weak correlation with the stock market. 
+
+```{r}
+# Convert the date column to Date type
+data_clean$date <- as.Date(data_clean$date, format = "%m/%d/%Y")
+
+# Arrange data by date
+data_clean <- data_clean %>% arrange(date)
+
+horizon <- 5 *252
+
+# Fit an ARIMA model to the oil closing prices
+model <- auto.arima(data_clean$oil.close, seasonal = FALSE)
+
+# Print the model summary
+summary(model)
+```
+
+```{r}
+# Forecast future values
+forecast_values <- forecast(model, h = horizon)
+
+# Create a data frame with the forecast values and dates
+forecast_df <- data.frame(
+  date = seq.Date(from = max(data_clean$date) + 1, by = "day", length.out = horizon),
+  forecast = as.numeric(forecast_values$mean)
+)
+
+# Combine the actual and forecast data for plotting
+plot_data <- data_clean %>%
+  select(date, oil.close) %>%
+  rename(actual = oil.close) %>%
+  bind_rows(forecast_df %>% rename(actual = forecast))
+
+# Plot the actual and forecasted values
+ggplot(plot_data, aes(x = date)) +
+  geom_line(aes(y = actual, color = "Actual")) +
+  geom_line(data = forecast_df, aes(y = forecast, color = "Forecast")) +
+  labs(title = "Oil Price Forecast", x = "Date", y = "Price") +
+  scale_color_manual(values = c("Actual" = "blue", "Forecast" = "red"))
+
+```
+In order to forecast the movement of stocks for the future I thought the ARIMA model would be the appropriate method. The model uses previous values of the time series in order to predict future outcomes. Which I thought would be an appropriate way to predict the value of Oil in a vacuum; before I go ahead and graph the future values of the other commodities. 
+
+The graph itself is forecasting for the price of oil to drop in 2025. 
+
+
+
+
+
+
+```{r}
+forecast_commodity <- function(data, column_name, horizon) {
+  # Fit ARIMA model
+  model <- auto.arima(data[[column_name]], seasonal = FALSE)
+  # Forecast future values
+  forecast_values <- forecast(model, h = horizon)
+  # Create a data frame with the forecast values and dates
+  forecast_df <- data.frame(
+    date = seq.Date(from = max(data$date) + 1, by = "day", length.out = horizon),
+    forecast = as.numeric(forecast_values$mean)
+  )
+  return(forecast_df)
+}
+
+# Forecast for each commodity
+oil_forecast <- forecast_commodity(data_clean, "oil.close", horizon)
+gold_forecast <- forecast_commodity(data_clean, "gold.close", horizon)
+silver_forecast <- forecast_commodity(data_clean, "silver.close", horizon)
+platinum_forecast <- forecast_commodity(data_clean, "platinum.close", horizon)
+palladium_forecast <- forecast_commodity(data_clean, "palladium.close", horizon)
+
+
+
+```
+
+For the models I noticed that all of the prices for the Commodities stayed exactly on a straight line for the prediction that was trying to be made. Which made me consider if I was using the correct model to forecast the price.
+
+
+
+```{r}
+# Combine forecast data with historical data
+combine_data <- function(data, forecast_df, column_name) {
+  combined <- data %>%
+    select(date, !!sym(column_name)) %>%
+    rename(actual = !!sym(column_name)) %>%
+    bind_rows(forecast_df %>% rename(actual = forecast))
+  return(combined)
+}
+
+# Combine data for each commodity
+oil_combined <- combine_data(data_clean, oil_forecast, "oil.close")
+gold_combined <- combine_data(data_clean, gold_forecast, "gold.close")
+silver_combined <- combine_data(data_clean, silver_forecast, "silver.close")
+platinum_combined <- combine_data(data_clean, platinum_forecast, "platinum.close")
+palladium_combined <- combine_data(data_clean, palladium_forecast, "palladium.close")
+
+
+```
+
+```{r}
+# Plot the actual and forecasted values for all commodities and S&P 500
+ggplot() +
+  geom_line(data = oil_combined, aes(x = date, y = actual, color = "Oil Actual")) +
+  geom_line(data = oil_forecast, aes(x = date, y = forecast, color = "Oil Forecast")) +
+  geom_line(data = gold_combined, aes(x = date, y = actual, color = "Gold Actual")) +
+  geom_line(data = gold_forecast, aes(x = date, y = forecast, color = "Gold Forecast")) +
+  geom_line(data = silver_combined, aes(x = date, y = actual, color = "Silver Actual")) +
+  geom_line(data = silver_forecast, aes(x = date, y = forecast, color = "Silver Forecast")) +
+  geom_line(data = platinum_combined, aes(x = date, y = actual, color = "Platinum Actual")) +
+  geom_line(data = platinum_forecast, aes(x = date, y = forecast, color = "Platinum Forecast")) +
+  geom_line(data = palladium_combined, aes(x = date, y = actual, color = "Palladium Actual")) +
+  geom_line(data = palladium_forecast, aes(x = date, y = forecast, color = "Palladium Forecast")) +
+  labs(title = "Commodity Prices Forecast for the Next 5 Years",
+       x = "Date", y = "Price") +
+  scale_color_manual(values = c(
+    "Oil Actual" = "blue", "Oil Forecast" = "darkblue",
+    "Gold Actual" = "red", "Gold Forecast" = "darkred",
+    "Silver Actual" = "green", "Silver Forecast" = "darkgreen",
+    "Platinum Actual" = "purple", "Platinum Forecast" = "violet",
+    "Palladium Actual" = "orange", "Palladium Forecast" = "darkorange"
+  )) +
+  theme_minimal()
+
+```
+
+
+```{r, echo=FALSE}
+# Function to adjust ARIMA models based on scenarios
+scenario_forecast <- function(data, column_name, horizon, scenario) {
+  if (scenario == "boom") {
+    # Increase the level by 10% to simulate economic boom
+    adjustment <- 1.10
+  } else if (scenario == "recession") {
+    # Decrease the level by 10% to simulate economic recession
+    adjustment <- 0.90
+  } else {
+    adjustment <- 1.00
+  }
+
+  model <- auto.arima(data[[column_name]], seasonal = FALSE)
+  forecast_values <- forecast(model, h = horizon)
+  adjusted_forecast <- forecast_values$mean * adjustment
+
+  forecast_df <- data.frame(
+    date = seq.Date(from = max(data$date) + 1, by = "day", length.out = horizon),
+    forecast = as.numeric(adjusted_forecast)
+  )
+  return(forecast_df)
+}
+
+# Set the forecast horizon to 5 years
+horizon <- 5 * 252
+
+# Generate scenario-based forecasts for each commodity
+oil_forecast_boom <- scenario_forecast(data_clean, "oil.close", horizon, "boom")
+oil_forecast_recession <- scenario_forecast(data_clean, "oil.close", horizon, "recession")
+gold_forecast_boom <- scenario_forecast(data_clean, "gold.close", horizon, "boom")
+gold_forecast_recession <- scenario_forecast(data_clean, "gold.close", horizon, "recession")
+silver_forecast_boom <- scenario_forecast(data_clean, "silver.close", horizon, "boom")
+silver_forecast_recession <- scenario_forecast(data_clean, "silver.close", horizon, "recession")
+platinum_forecast_boom <- scenario_forecast(data_clean, "platinum.close", horizon, "boom")
+platinum_forecast_recession <- scenario_forecast(data_clean, "platinum.close", horizon, "recession")
+palladium_forecast_boom <- scenario_forecast(data_clean, "palladium.close", horizon, "boom")
+palladium_forecast_recession <- scenario_forecast(data_clean, "palladium.close", horizon, "recession")
+
+
+
+
+
+# Combine scenario-based forecast data with historical data
+combine_scenario_data <- function(data, baseline_forecast, boom_forecast, recession_forecast, column_name) {
+  combined <- data %>%
+    select(date, !!sym(column_name)) %>%
+    rename(actual = !!sym(column_name)) %>%
+    bind_rows(baseline_forecast %>% rename(baseline = forecast)) %>%
+    bind_rows(boom_forecast %>% rename(boom = forecast)) %>%
+    bind_rows(recession_forecast %>% rename(recession = forecast))
+  return(combined)
+}
+
+# Combine data for each commodity under both scenarios
+oil_combined <- combine_scenario_data(data_clean, oil_forecast, oil_forecast_boom, oil_forecast_recession, "oil.close")
+gold_combined <- combine_scenario_data(data_clean, gold_forecast, gold_forecast_boom, gold_forecast_recession, "gold.close")
+silver_combined <- combine_scenario_data(data_clean, silver_forecast, silver_forecast_boom, silver_forecast_recession, "silver.close")
+platinum_combined <- combine_scenario_data(data_clean, platinum_forecast, platinum_forecast_boom, platinum_forecast_recession, "platinum.close")
+palladium_combined <- combine_scenario_data(data_clean, palladium_forecast, palladium_forecast_boom, palladium_forecast_recession, "palladium.close")
+
+
+
+
+# Plot the scenario-based forecasts for all commodities
+ggplot() +
+  geom_line(data = oil_combined, aes(x = date, y = actual, color = "Oil Actual")) +
+  geom_line(data = oil_forecast, aes(x = date, y = forecast, color = "Oil Baseline")) +
+  geom_line(data = oil_forecast_boom, aes(x = date, y = forecast, color = "Oil Boom")) +
+  geom_line(data = oil_forecast_recession, aes(x = date, y = forecast, color = "Oil Recession")) +
+  geom_line(data = gold_combined, aes(x = date, y = actual, color = "Gold Actual")) +
+  geom_line(data = gold_forecast, aes(x = date, y = forecast, color = "Gold Baseline")) +
+  geom_line(data = gold_forecast_boom, aes(x = date, y = forecast, color = "Gold Boom")) +
+  geom_line(data = gold_forecast_recession, aes(x = date, y = forecast, color = "Gold Recession")) +
+  geom_line(data = silver_combined, aes(x = date, y = actual, color = "Silver Actual")) +
+  geom_line(data = silver_forecast, aes(x = date, y = forecast, color = "Silver Baseline")) +
+  geom_line(data = silver_forecast_boom, aes(x = date, y = forecast, color = "Silver Boom")) +
+  geom_line(data = silver_forecast_recession, aes(x = date, y = forecast, color = "Silver Recession")) +
+  geom_line(data = platinum_combined, aes(x = date, y = actual, color = "Platinum Actual")) +
+  geom_line(data = platinum_forecast, aes(x = date, y = forecast, color = "Platinum Baseline")) +
+  geom_line(data = platinum_forecast_boom, aes(x = date, y = forecast, color = "Platinum Boom")) +
+  geom_line(data = platinum_forecast_recession, aes(x = date, y = forecast, color = "Platinum Recession")) +
+  geom_line(data = palladium_combined, aes(x = date, y = actual, color = "Palladium Actual")) +
+  geom_line(data = palladium_forecast, aes(x = date, y = forecast, color = "Palladium Baseline")) +
+  geom_line(data = palladium_forecast_boom, aes(x = date, y = forecast, color = "Palladium Boom")) +
+  geom_line(data = palladium_forecast_recession, aes(x = date, y = forecast, color = "Palladium Recession")) +
+  labs(title = "Commodity Prices Scenario-Based Forecast for the Next 5 Years",
+       x = "Date", y = "Price") +
+  scale_color_manual(values = c(
+    "Oil Actual" = "blue", "Oil Baseline" = "darkblue", "Oil Boom" = "lightblue", "Oil Recession" = "blue4",
+    "Gold Actual" = "red", "Gold Baseline" = "darkred", "Gold Boom" = "lightcoral", "Gold Recession" = "red4",
+    "Silver Actual" = "green", "Silver Baseline" = "darkgreen", "Silver Boom" = "lightgreen", "Silver Recession" = "green4",
+    "Platinum Actual" = "purple", "Platinum Baseline" = "darkviolet", "Platinum Boom" = "mediumorchid", "Platinum Recession" = "orchid4",
+    "Palladium Actual" = "orange", "Palladium Baseline" = "darkorange", "Palladium Boom" = "gold", "Palladium Recession" = "orange4"
+  )) +
+  theme_minimal()
+
+```
+To Test if my model was working the way I wanted it to I decided to graph the prices of the Commodities based on two scenarios. One which predicted a 10% increase in all the prices represented as a "boom" and another that represented a 10% decrease represented as a "recession". This confirmed to me the the graphs were indeed working, but I decided to test out a different statistical model  instead. 
+
+```{r, echo=FALSE}
+
+
+# Install and load necessary packages
+install.packages("rugarch")
+install.packages("xts")
+library(rugarch)
+library(xts)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+
+# Ensure data is clean and without NAs or Infs
+oil_returns <- data_clean$oil.close  # Extract oil close prices
+oil_returns <- na.omit(oil_returns)  # Remove NA values
+oil_returns <- oil_returns[!is.infinite(oil_returns)]  # Remove Inf values
+oil_returns <- oil_returns[!is.nan(oil_returns)]  # Remove NaN values
+
+# Convert oil_returns to a time series object
+oil_returns <- xts(oil_returns, order.by = data_clean$date[!is.na(oil_returns)])
+
+# Specify the GARCH model
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+  mean.model = list(armaOrder = c(0, 0))
+)
+
+# Fit the GARCH model to your data
+oil_garch_fit <- ugarchfit(spec = spec, data = oil_returns)
+
+# Forecast volatility using the fitted GARCH model
+oil_garch_forecast <- ugarchforecast(oil_garch_fit, n.ahead = 30)
+
+# Extract the forecasted volatility (sigma)
+forecast_volatility <- sigma(oil_garch_forecast)
+
+# Prepare the forecast data
+forecast_df <- data.frame(
+  Date = as.Date(index(forecast_volatility)),  # Ensure oil_garch_forecast has date index
+  Volatility = as.numeric(forecast_volatility)  # Ensure sigma(oil_garch_forecast) returns numeric values
+)
+
+# Add confidence intervals for volatility
+forecast_df <- forecast_df %>%
+  mutate(
+    Lower_CI = Volatility * 0.95,
+    Upper_CI = Volatility * 1.05
+  )
+
+# Historical data for context
+historical_volatility <- data.frame(
+  Date = as.Date(index(oil_garch_fit@fit$sigma)),  # Ensure oil_garch_fit has a date index
+  Volatility = as.numeric(oil_garch_fit@fit$sigma)  # Ensure sigma(oil_garch_fit) returns numeric values
+)
+
+# Add a column to distinguish historical data
+historical_volatility <- historical_volatility %>%
+  mutate(Type = "Historical")
+
+# Add a column to distinguish forecast data
+forecast_df <- forecast_df %>%
+  mutate(Type = "Forecast")
+
+# Combine historical and forecasted volatility
+combined_data <- bind_rows(
+  historical_volatility %>%
+    filter(Date >= as.Date("2024-01-01")),  # Focus on recent historical data
+  forecast_df
+)
+
+# Plot the combined data with confidence intervals
+ggplot(combined_data, aes(x = Date, y = Volatility, color = Type)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(
+    data = forecast_df,
+    aes(x = Date, ymin = Lower_CI, ymax = Upper_CI, fill = Type),
+    alpha = 0.2,
+    inherit.aes = FALSE
+  ) +
+  labs(
+    title = "Oil GARCH Volatility Forecast with Historical Context",
+    x = "Date",
+    y = "Volatility",
+    color = "Type",
+    fill = "Type"
+  ) +
+  scale_color_manual(values = c("Historical" = "black", "Forecast" = "blue")) +
+  scale_fill_manual(values = c("Forecast" = "blue")) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 14)
+  )
+
+```
+
+Another model I used is called the GARCH model, which is used to estimate the volatility of financial returns. Typically, it is used in markets to model and forecast the volatility of different assets. 
+Looking at the trend line it is clear that volatility is expected to steady increase over time. You can also see that the interval increase over time, generally as the interval becomes wider it represents greater uncertainty in the forecast. Therefore, this sugests that there is uncertainty in the future. This could represent greater risks in the market for traders and investors in oil related assets.
+
+
+
+```{r, echo=FALSE}
+# Ensure the data is clean and without NAs or Infs for each commodity
+prepare_data <- function(data) {
+  data <- na.omit(data)  # Remove NA values
+  data <- data[!is.infinite(data)]  # Remove Inf values
+  data <- data[!is.nan(data)]  # Remove NaN values
+  return(data)
+}
+
+# Prepare data for all commodities
+gold_returns <- prepare_data(data_clean$gold.close)
+silver_returns <- prepare_data(data_clean$silver.close)
+platinum_returns <- prepare_data(data_clean$platinum.close)
+palladium_returns <- prepare_data(data_clean$palladium.close)
+
+# Convert to time series objects
+gold_returns <- xts(gold_returns, order.by = data_clean$date[!is.na(gold_returns)])
+silver_returns <- xts(silver_returns, order.by = data_clean$date[!is.na(silver_returns)])
+platinum_returns <- xts(platinum_returns, order.by = data_clean$date[!is.na(platinum_returns)])
+palladium_returns <- xts(palladium_returns, order.by = data_clean$date[!is.na(palladium_returns)])
+
+# Specify the GARCH model
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+  mean.model = list(armaOrder = c(0, 0))
+)
+
+# Fit the GARCH models
+gold_garch_fit <- ugarchfit(spec = spec, data = gold_returns)
+silver_garch_fit <- ugarchfit(spec = spec, data = silver_returns)
+platinum_garch_fit <- ugarchfit(spec = spec, data = platinum_returns)
+palladium_garch_fit <- ugarchfit(spec = spec, data = palladium_returns)
+
+# Forecast volatilities
+gold_garch_forecast <- ugarchforecast(gold_garch_fit, n.ahead = 30)
+silver_garch_forecast <- ugarchforecast(silver_garch_fit, n.ahead = 30)
+platinum_garch_forecast <- ugarchforecast(platinum_garch_fit, n.ahead = 30)
+palladium_garch_forecast <- ugarchforecast(palladium_garch_fit, n.ahead = 30)
+
+# Extract forecasted volatilities
+gold_forecast_vol <- sigma(gold_garch_forecast)
+silver_forecast_vol <- sigma(silver_garch_forecast)
+platinum_forecast_vol <- sigma(platinum_garch_forecast)
+palladium_forecast_vol <- sigma(palladium_garch_forecast)
+
+```
+
+```{r, echo=FALSE}
+# Prepare forecast data for all commodities
+prepare_forecast_data <- function(forecast_volatility, type_label) {
+  data.frame(
+    Date = as.Date(index(forecast_volatility)),
+    Volatility = as.numeric(forecast_volatility),
+    Type = type_label
+  ) %>%
+  mutate(
+    Lower_CI = Volatility * 0.95,
+    Upper_CI = Volatility * 1.05
+  )
+}
+
+gold_forecast_df <- prepare_forecast_data(gold_forecast_vol, "Gold Forecast")
+silver_forecast_df <- prepare_forecast_data(silver_forecast_vol, "Silver Forecast")
+platinum_forecast_df <- prepare_forecast_data(platinum_forecast_vol, "Platinum Forecast")
+palladium_forecast_df <- prepare_forecast_data(palladium_forecast_vol, "Palladium Forecast")
+
+# Historical volatilities for context
+gold_historical_vol <- data.frame(
+  Date = as.Date(index(gold_garch_fit@fit$sigma)),
+  Volatility = as.numeric(gold_garch_fit@fit$sigma),
+  Type = "Gold Historical"
+)
+
+silver_historical_vol <- data.frame(
+  Date = as.Date(index(silver_garch_fit@fit$sigma)),
+  Volatility = as.numeric(silver_garch_fit@fit$sigma),
+  Type = "Silver Historical"
+)
+
+platinum_historical_vol <- data.frame(
+  Date = as.Date(index(platinum_garch_fit@fit$sigma)),
+  Volatility = as.numeric(platinum_garch_fit@fit$sigma),
+  Type = "Platinum Historical"
+)
+
+palladium_historical_vol <- data.frame(
+  Date = as.Date(index(palladium_garch_fit@fit$sigma)),
+  Volatility = as.numeric(palladium_garch_fit@fit$sigma),
+  Type = "Palladium Historical"
+)
+
+# Combine all data
+combined_data <- bind_rows(
+  gold_historical_vol, gold_forecast_df,
+  silver_historical_vol, silver_forecast_df,
+  platinum_historical_vol, platinum_forecast_df,
+  palladium_historical_vol, palladium_forecast_df
+)
+
+```
+
+```{r}
+# Plot the combined data with confidence intervals
+ggplot(combined_data, aes(x = Date, y = Volatility, color = Type)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(
+    data = combined_data %>% filter(str_detect(Type, "Forecast")),
+    aes(x = Date, ymin = Lower_CI, ymax = Upper_CI, fill = Type),
+    alpha = 0.2,
+    inherit.aes = FALSE
+  ) +
+  labs(
+    title = "Commodity Volatility Forecasts with Historical Context",
+    x = "Date",
+    y = "Volatility",
+    color = "Type",
+    fill = "Type"
+  ) +
+  scale_color_manual(values = c(
+    "Gold Historical" = "red", "Gold Forecast" = "darkred",
+    "Silver Historical" = "blue", "Silver Forecast" = "darkblue",
+    "Platinum Historical" = "green", "Platinum Forecast" = "darkgreen",
+    "Palladium Historical" = "orange", "Palladium Forecast" = "darkorange"
+  )) +
+  scale_fill_manual(values = c(
+    "Gold Forecast" = "darkred",
+    "Silver Forecast" = "darkblue",
+    "Platinum Forecast" = "darkgreen",
+    "Palladium Forecast" = "darkorange"
+  )) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 14)
+  )
+
+```
+## Conclusion: 
+Gold shows a relatively stable potential forecast compared to its historical trends, volatility remains steady.Palladium shows some extreme levels of fluctuations, but the forecast remains high and stable. Platinum displays historical volatility but the forecast suggest stability. Silver showed that both historical and forecasted volatility are minimal compared to the other commodities.   
+
+## Important Observations 
+Palladium's historical volatility exhibits sharp spikes that are likely influenced by disruptions in the market or other factors. The forecast predicts this volatility to stabilize but stay around the 100 - 150 range. 
+
+Gold has the most stable historical and forecasted volatility, reflecting its reputation as a safe investment. 
+
+Platinum demonstrated moderate historical fluctuations, with its forecast suggesting a reduction in volatility in the future. 
+
+Silver has minimal volatility, with historical and forecasted levels being closely aligned, which could imply silver has a stable market.
+
+## Potential Insights
+
+As expected, gold and silver appear to be less risky investments due to their stable volatility trends, make them safer options for risk-averse investors. 
+
+Platinum shows moderate volatility offering a medium-risk option for investors
+
+Palladium's volatility signals opportunities for high-risk, high-reward strategies but will often require careful consideration of the market.
