@@ -62,11 +62,11 @@ To understand and model the impact of key commodity prices on the U.S. stock mar
 ---
 
 ##  Repository Contents
-Analysis of S&P 500 and Commodity Prices.rmd – R Markdown notebook containing the  full exploratory analysis
-Analysis of S&P 500 and Commodity Prices.HTML - R Markdown Containing all the important analysis in a neat format.
-Analysis of S&P 500 and Commodity Prices.pdf - Same as the HTML file just in a PDF  
-Final_DAT_301_Finance.ipynb: Juptyer Notebook contain the full project, contains the everything from the R project plus the second iteration with new commodities and tech companies along with random forest algorithm. 
-Final_DAT_301_Finance.pdf: Contains everything from the Juptyer notebook, just in a easy to read format. 
+-Analysis of S&P 500 and Commodity Prices.rmd – R Markdown notebook containing the  full exploratory analysis
+-Analysis of S&P 500 and Commodity Prices.HTML - R Markdown Containing all the important analysis in a neat format.
+-Analysis of S&P 500 and Commodity Prices.pdf - Same as the HTML file just in a PDF  
+-Final_DAT_301_Finance.ipynb: Juptyer Notebook contain the full project, contains the everything from the R project plus the second iteration with new commodities and tech companies along with random forest algorithm. 
+-Final_DAT_301_Finance.pdf: Contains everything from the Juptyer notebook, just in a easy to read format. 
 
 ---
 
