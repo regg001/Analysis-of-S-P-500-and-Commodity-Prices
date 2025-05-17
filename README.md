@@ -1,61 +1,80 @@
-# Analysis-of-S-P-500-and-Commodity-Prices
-Data Science Project analyzing the trends between the S&amp;P 500 and commodities 
+#  Analysis of S&P 500 and Commodity Prices
 
-This project explores the relationship between the S&P 500 index and key commodity prices over time using R. It focuses on identifying correlations and patterns that could provide insights into market behavior.
+Data Science Project analyzing the trends and predictive relationships between the S&P 500 index and major commodities.
 
-# Objective:
-
-To analyze historical trends between major U.S. market indices and commodities like oil, gold, and silver. The goal is to better understand how fluctuations in commodity prices relate to the performance of the S&P 500.
+This project explores how fluctuations in commodities like gold, oil, and silver relate to the S&P 500. It includes an exploratory version in R and a machine learning-based predictive version in Python.
 
 ---
 
-# Tools:
+##  Objective
 
+To understand and model the impact of key commodity prices on the U.S. stock market. The project aims to identify patterns and evaluate forecasting potential using different techniques and tools.
+
+---
+
+##  Tools & Technologies
+
+###  R Version
 - **Language**: R  
-- **Libraries**: `ggplot2`, `dplyr`, `tidyverse`, `lubridate` ,'corrplot' , 'forecast' , 'rugarch'  
+- **Libraries**: `ggplot2`, `dplyr`, `tidyverse`, `lubridate`, `corrplot`, `forecast`, `rugarch`  
 - **Data Source**: [Yahoo Finance](https://finance.yahoo.com/)
 
+###  Python Version
+- **Language**: Python  
+- **Libraries**: `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `seaborn`, `yfinance`  
+- **Methods**: Feature Engineering, Random Forest Regression, Cross-Validation
+
 ---
 
-## 📈 Key Insights:
+##  Key Insights
 
+### From R Analysis:
 - Positive correlation between gold prices and the S&P 500 during specific periods
-- Oil price volatility shows inverse relationships during economic shocks
-- Seasonal trends visible in commodity pricing that affect market sentiment
-- Negative correlation between silver prices and the S&P 500.
-- Silver does not move in tandom with the stock market, it is influenced by supply and demand, and market dynamics. 
+- Oil price volatility often moves inversely with market performance during economic shocks
+- Seasonal trends in commodities can influence stock index movement
+- Silver prices show weaker correlation, behaving independently due to supply/demand dynamics
+
+
+### From Python Model:
+- Advanced feature engineering significantly improved model performance
+- **Random Forest Regression** achieved:
+  - **RMSE:** 52.77  
+  - **R² Score:** 0.9976  
+- Feature importance analysis highlights the predictive power of oil and gold volatility
+- Taiwan Semiconductors(TSMC) Has direct correlation with the performance of the S&P 500 and the NASDAQ
+- Pallaidum also has very strong correlation (0.85) with the NASDAQ and 0.86 with TSMC. Due to the high use of palladium in alot of technology, this commodity has strong correlation with both the major indexes. 
+
+---
+### Sample Visualizations:
+![image](https://github.com/user-attachments/assets/b0b16afe-3d04-4bea-8537-5d2af8a6cf37)
+
+![image](https://github.com/user-attachments/assets/0d8013ab-f5a3-4e1f-8767-89eda7979183)
+
+![image](https://github.com/user-attachments/assets/e3daaa88-5443-4827-ae69-010d987c8290)
+
+![image](https://github.com/user-attachments/assets/c6855804-74af-458c-b0e0-712065c2d48d)
+
+
+
+
+
 
 ---
 
-## Repository Content:
-
-- `Analysis of S&P 500 and Commodity Prices.rmd` – R Markdown notebook containing the  full exploratory analysis
-- `Analysis of S&P 500 and Commodity Prices.HTML' - R Markdown Containing all the important analysis in a neat format.
-- '`Analysis of S&P 500 and Commodity Prices.pdf' - Same as the HTML file just in a PDF  
-
----
-
-## Sample Visualization
-
-![image](https://github.com/user-attachments/assets/ff5a1a08-b915-4faf-9f4a-5e5b2dcd87a3)
-
-
-
-## 🚀 Next Steps
-
-- [ ] Add Python version for ML modeling and forecasting
-- [ ] Add Comparsion to Major Companies as well, seeing the correlation between major stocks and the overall market. 
-- [ ] Upload visualizations and summary to README
-- [ ] Compare predictive performance between methods
+##  Repository Contents
+Analysis of S&P 500 and Commodity Prices.rmd – R Markdown notebook containing the  full exploratory analysis
+Analysis of S&P 500 and Commodity Prices.HTML - R Markdown Containing all the important analysis in a neat format.
+Analysis of S&P 500 and Commodity Prices.pdf - Same as the HTML file just in a PDF  
+Final_DAT_301_Finance.ipynb: Juptyer Notebook contain the full project, contains the everything from the R project plus the second iteration with new commodities and tech companies along with random forest algorithm. 
+Final_DAT_301_Finance.pdf: Contains everything from the Juptyer notebook, just in a easy to read format. 
 
 ---
 
-## 👤 Author
+
+
+## Author
 
 **Reginal Supoint**  
 Data Science Student – Arizona State University  
 [LinkedIn](https://www.linkedin.com/in/reginal-supoint)  
 [Portfolio (Coming Soon)](#)
-
----
-
